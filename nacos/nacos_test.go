@@ -194,3 +194,69 @@ func TestSubscribe(t *testing.T) {
 	select {}
 	//time.Sleep(time.Second * 20)
 }
+
+//test unregister
+func TestUnRegister(t *testing.T) {
+	c, err := getNacosRegistry()
+	if err != nil {
+		t.Errorf("get client fail,err:%s", err)
+	}
+	//register
+	go func() {
+		c2, err := getNacosRegistry()
+		if err != nil {
+			t.Errorf("get client fail,err:%s", err)
+		}
+		serviceNum := 2
+		rand.Seed(time.Now().UnixNano())
+		for i := 0; i < serviceNum; i++ {
+			ser := &registry.Service{
+				NacosServiceName: "demo.go",
+				NacosIp:          "192.168.50.229",
+				NacosPort:        uint64(rand.Intn(10000)),
+				NacosWeight:      20,
+				NacosEnable:      true,
+				NacosHealthy:     true,
+				NacosEphemeral:   true,
+			}
+			ser.NacosMetadata = map[string]string{"idc": "shanghai" + strconv.FormatUint(ser.NacosPort, 10)}
+			err := c2.Register(context.TODO(), ser)
+			if err != nil {
+				t.Log("register service fail,err", err.Error())
+			}
+
+			//unregister
+			go func(service *registry.Service) {
+				time.Sleep(time.Second * 25)
+				t.Log("unregister")
+				c2.UnRegister(context.TODO(), service)
+			}(ser)
+
+			t.Logf("register one sevice:servicePort:%d", ser.NacosPort)
+			time.Sleep(time.Second * 3)
+		}
+	}()
+	//watch
+	service := &registry.Service{
+		NacosServiceName: "demo.go",
+	}
+	err = c.SubscribeService(context.TODO(), service)
+	if err != nil {
+		t.Errorf("subscribe service failed,err:%s", err)
+	}
+	go func() {
+		for {
+			t.Log("----print service data start----")
+			if services, ok := c.Services[service.NacosServiceName]; ok {
+				for _, v := range services {
+					t.Logf("service data:%+v", v)
+				}
+			}
+			t.Log("----print service data stop----")
+
+			time.Sleep(time.Second * 5)
+		}
+
+	}()
+	select {}
+}

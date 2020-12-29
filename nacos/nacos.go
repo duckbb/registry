@@ -3,19 +3,15 @@ package nacos
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 
-	"github.com/nacos-group/nacos-sdk-go/model"
-
-	"github.com/nacos-group/nacos-sdk-go/vo"
-
-	"github.com/nacos-group/nacos-sdk-go/clients"
-
-	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
-
-	"github.com/nacos-group/nacos-sdk-go/common/constant"
-
 	"github.com/duckbb/registry"
+	"github.com/nacos-group/nacos-sdk-go/clients"
+	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
+	"github.com/nacos-group/nacos-sdk-go/common/constant"
+	"github.com/nacos-group/nacos-sdk-go/model"
+	"github.com/nacos-group/nacos-sdk-go/vo"
 )
 
 const RegistryName = "nacos"
@@ -57,13 +53,6 @@ func (n *NacosRegistry) Register(ctx context.Context, service *registry.Service)
 	}
 	n.lock.Lock()
 	defer n.lock.Unlock()
-	//if srvs, ok := n.Services[service.NacosServiceName]; ok {
-	//	for index, srv := range srvs {
-	//		if EqualService(srv, service) {
-	//			srvs[index] = service
-	//		}
-	//	}
-	//}
 
 	resisterParam, err := NewRegisterInstanceParam(service)
 	if err != nil {
@@ -159,6 +148,7 @@ func (n *NacosRegistry) SubscribeService(ctx context.Context, service *registry.
 	param := &vo.SubscribeParam{
 		ServiceName: service.NacosServiceName,
 		SubscribeCallback: func(services []model.SubscribeService, err error) {
+			log.Println("watch service change:")
 			srvs := []*registry.Service{}
 			for _, v := range services {
 				tempService := &registry.Service{
@@ -171,13 +161,11 @@ func (n *NacosRegistry) SubscribeService(ctx context.Context, service *registry.
 					NacosServiceName: v.ServiceName,
 				}
 				srvs = append(srvs, tempService)
-				fmt.Printf("watch service:%+v", v)
+				log.Printf("watch service:%+v\n", v)
 			}
 			n.lock.Lock()
 			defer n.lock.Unlock()
 			n.Services[service.NacosServiceName] = srvs
-			//n.Services
-			//log.Printf("\n\n callback return services:%s \n\n", utils.ToJsonString(services))
 		},
 	}
 	if service.NacosGroupName != "" {
