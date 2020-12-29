@@ -191,8 +191,8 @@ func TestSubscribe(t *testing.T) {
 		}
 
 	}()
-	select {}
-	//time.Sleep(time.Second * 20)
+	//select {}
+	time.Sleep(time.Second * 50)
 }
 
 //test unregister
@@ -258,5 +258,41 @@ func TestUnRegister(t *testing.T) {
 		}
 
 	}()
-	select {}
+	//select {}
+	time.Sleep(time.Second * 50)
+}
+
+//test other service off
+func TestTurnOffService(t *testing.T) {
+	c, err := getNacosRegistry()
+	if err != nil {
+		t.Errorf("get client fail,err:%s", err)
+	}
+
+	//turn off outside service
+
+	//watch
+	service := &registry.Service{
+		NacosServiceName: "demo.go",
+	}
+	err = c.SubscribeService(context.TODO(), service)
+	if err != nil {
+		t.Errorf("subscribe service failed,err:%s", err)
+	}
+	go func() {
+		for {
+			t.Log("----print service data start----")
+			if services, ok := c.Services[service.NacosServiceName]; ok {
+				for _, v := range services {
+					t.Logf("service data:%+v", v)
+				}
+			}
+			t.Log("----print service data stop----")
+
+			time.Sleep(time.Second * 5)
+		}
+
+	}()
+	//select {}
+	time.Sleep(time.Second * 50)
 }

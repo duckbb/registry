@@ -17,7 +17,7 @@ import (
 const RegistryName = "nacos"
 
 type NacosRegistry struct {
-	lock     sync.Mutex
+	sync.Mutex
 	Client   naming_client.INamingClient
 	Services map[string][]*registry.Service
 }
@@ -51,8 +51,8 @@ func (n *NacosRegistry) Register(ctx context.Context, service *registry.Service)
 	if n.Client == nil {
 		return NacosNotFoundErr
 	}
-	n.lock.Lock()
-	defer n.lock.Unlock()
+	n.Lock()
+	defer n.Unlock()
 
 	resisterParam, err := NewRegisterInstanceParam(service)
 	if err != nil {
@@ -74,8 +74,8 @@ func (n *NacosRegistry) UnRegister(ctx context.Context, service *registry.Servic
 	if n.Client == nil {
 		return NacosNotFoundErr
 	}
-	n.lock.Lock()
-	defer n.lock.Unlock()
+	n.Lock()
+	defer n.Unlock()
 	resisterParam := NewDeregisterInstanceParam(service)
 
 	success, err := n.Client.DeregisterInstance(*resisterParam)
@@ -96,8 +96,8 @@ func (n *NacosRegistry) Get(ctx context.Context, service *registry.Service) ([]*
 	if n.Client == nil {
 		return nil, NacosNotFoundErr
 	}
-	n.lock.Lock()
-	defer n.lock.Unlock()
+	n.Lock()
+	defer n.Unlock()
 	//service healthy=true,enable=true 和weight>0
 	param := NewSelectInstances(service)
 	instances, err := n.Client.SelectInstances(*param)
@@ -126,18 +126,6 @@ func (n *NacosRegistry) Get(ctx context.Context, service *registry.Service) ([]*
 	return srvs, nil
 
 }
-func (n *NacosRegistry) Add(service *registry.Service) error {
-	n.lock.Lock()
-	defer n.lock.Unlock()
-	if srvs, ok := n.Services[service.NacosServiceName]; ok {
-		for index, srv := range srvs {
-			if EqualService(srv, service) {
-				srvs[index] = service
-			}
-		}
-	}
-	return nil
-}
 
 //subscribe Service
 func (n *NacosRegistry) SubscribeService(ctx context.Context, service *registry.Service) error {
@@ -163,8 +151,8 @@ func (n *NacosRegistry) SubscribeService(ctx context.Context, service *registry.
 				srvs = append(srvs, tempService)
 				log.Printf("watch service:%+v\n", v)
 			}
-			n.lock.Lock()
-			defer n.lock.Unlock()
+			n.Lock()
+			defer n.Unlock()
 			n.Services[service.NacosServiceName] = srvs
 		},
 	}
@@ -252,26 +240,3 @@ func NewSelectInstances(srv *registry.Service) *vo.SelectInstancesParam {
 	}
 	return param
 }
-
-//
-//func NewSubscribeParam(srv *registry.Service) *vo.SubscribeParam {
-//	param := &vo.SubscribeParam{
-//		ServiceName: srv.NacosServiceName,
-//		//GroupName:   "group-a",             // 默认值DEFAULT_GROUP
-//		//Clusters:    []string{"cluster-a"}, // 默认值DEFAULT
-//		SubscribeCallback: func(services []model.SubscribeService, err error) {
-//			for _, v := range services {
-//				fmt.Printf("watch service:%+v", v)
-//			}
-//			//log.Printf("\n\n callback return services:%s \n\n", utils.ToJsonString(services))
-//		},
-//	}
-//	if srv.NacosGroupName != "" {
-//		param.GroupName = srv.NacosGroupName
-//	}
-//	if srv.NacosClusterName != "" {
-//		param.Clusters = []string{srv.NacosClusterName}
-//	}
-//	return param
-//
-//}
