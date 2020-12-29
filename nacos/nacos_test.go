@@ -1,6 +1,7 @@
 package nacos
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 )
 
-func getClient() (*NacosRegistry, error) {
+func getNacosRegistry() (*NacosRegistry, error) {
 	serverConfigs := []constant.ServerConfig{
 		{
 			IpAddr:      "192.168.50.78",
@@ -19,18 +20,12 @@ func getClient() (*NacosRegistry, error) {
 		},
 	}
 	clientConfig := constant.ClientConfig{
-		//NamespaceId:         "82934ebb-070f-4193-b843-2053b3782563", // 如果需要支持多namespace，我们可以场景多个client,它们有不同的NamespaceId
 		TimeoutMs:           5000,
 		NotLoadCacheAtStart: true,
-		//LogDir:              "E:\\go_learning\\a4\\Go-000\\Week04\\cmd\\article\\log",
-		//CacheDir:            "E:\\go_learning\\a4\\Go-000\\Week04\\cmd\\article\\cache",
-		//LogDir:     "/tmp/nacos/log",
-		//CacheDir:   "/tmp/nacos/cache",
-		RotateTime: "1h",
-		MaxAge:     3,
-		//LogLevel:   "debug",
-		Username: "nacos",
-		Password: "123456",
+		RotateTime:          "1h",
+		MaxAge:              3,
+		Username:            "nacos",
+		Password:            "123456",
 	}
 	registry, err := NacosInit(clientConfig, serverConfigs)
 	return registry, err
@@ -46,18 +41,12 @@ func TestNacosInit(t *testing.T) {
 		},
 	}
 	clientConfig := constant.ClientConfig{
-		//NamespaceId:         "82934ebb-070f-4193-b843-2053b3782563", // 如果需要支持多namespace，我们可以场景多个client,它们有不同的NamespaceId
 		TimeoutMs:           5000,
 		NotLoadCacheAtStart: true,
-		//LogDir:              "E:\\go_learning\\a4\\Go-000\\Week04\\cmd\\article\\log",
-		//CacheDir:            "E:\\go_learning\\a4\\Go-000\\Week04\\cmd\\article\\cache",
-		//LogDir:     "/tmp/nacos/log",
-		//CacheDir:   "/tmp/nacos/cache",
-		RotateTime: "1h",
-		MaxAge:     3,
-		//LogLevel:   "debug",
-		Username: "nacos",
-		Password: "123456",
+		RotateTime:          "1h",
+		MaxAge:              3,
+		Username:            "nacos",
+		Password:            "123456",
 	}
 	_, err := NacosInit(clientConfig, serverConfigs)
 	if err != nil {
@@ -67,7 +56,7 @@ func TestNacosInit(t *testing.T) {
 }
 
 func TestNacosRegister(t *testing.T) {
-	c, err := getClient()
+	c, err := getNacosRegistry()
 	if err != nil {
 		t.Errorf("get client fail,err:%s", err)
 	}
@@ -81,16 +70,27 @@ func TestNacosRegister(t *testing.T) {
 		NacosMetadata:    map[string]string{"idc": "shanghai11111"},
 		NacosEphemeral:   true,
 	}
-	v1, err := NewRegisterInstanceParam(service)
-	if err != nil {
-		t.Error(err)
-	}
-	success, err := c.Client.RegisterInstance(*v1)
+	err = c.Register(context.TODO(), service)
 	if err != nil {
 		t.Errorf("register service fail,err:%s", err)
 	}
-	if !success {
-		t.Errorf("final register fail")
-	}
 	time.Sleep(time.Second * 10)
+}
+
+func TestGetService(t *testing.T) {
+	c, err := getNacosRegistry()
+	if err != nil {
+		t.Errorf("get client fail,err:%s", err)
+	}
+	service := &registry.Service{
+		NacosServiceName: "demo.go",
+	}
+	services, err := c.Get(context.TODO(), service)
+	if err != nil {
+		t.Errorf("get service failed,err:%s", err)
+	}
+	for _, v := range services {
+		t.Logf("%+v", v)
+	}
+
 }

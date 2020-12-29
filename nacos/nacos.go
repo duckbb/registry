@@ -53,6 +53,16 @@ func (n *NacosRegistry) Register(ctx context.Context, service *registry.Service)
 	if n.Client == nil {
 		return NacosNotFoundErr
 	}
+	n.lock.Lock()
+	defer n.lock.Unlock()
+	//if srvs, ok := n.Services[service.NacosServiceName]; ok {
+	//	for index, srv := range srvs {
+	//		if EqualService(srv, service) {
+	//			srvs[index] = service
+	//		}
+	//	}
+	//}
+
 	resisterParam, err := NewRegisterInstanceParam(service)
 	if err != nil {
 		return err
@@ -73,6 +83,8 @@ func (n *NacosRegistry) UnRegister(ctx context.Context, service *registry.Servic
 	if n.Client == nil {
 		return NacosNotFoundErr
 	}
+	n.lock.Lock()
+	defer n.lock.Unlock()
 	resisterParam := NewDeregisterInstanceParam(service)
 
 	success, err := n.Client.DeregisterInstance(*resisterParam)
@@ -107,17 +119,33 @@ func (n *NacosRegistry) Get(ctx context.Context, service *registry.Service) ([]*
 			NacosIp:          v.Ip,
 			NacosPort:        v.Port,
 			NacosWeight:      v.Weight,
+			NacosEnable:      v.Enable,
 			NacosHealthy:     v.Healthy,
 			NacosMetadata:    v.Metadata,
-			NacosClusterName: v.ClusterName,
 			NacosServiceName: v.ServiceName,
-			NacosEphemeral:   false,
+			NacosClusterName: v.ClusterName,
+			NacosEphemeral:   v.Ephemeral,
+		}
+		if service.NacosGroupName != "" {
+			srv.NacosGroupName = service.NacosGroupName
 		}
 		srvs = append(srvs, srv)
 	}
 	n.Services[service.NacosServiceName] = srvs
 	return srvs, nil
 
+}
+
+//equal service
+func EqualService(s1, s2 *registry.Service) bool {
+	if s1.NacosServiceName == s2.NacosServiceName &&
+		s1.NacosIp == s2.NacosIp &&
+		s1.NacosPort == s2.NacosPort &&
+		s1.NacosGroupName == s2.NacosGroupName &&
+		s1.NacosClusterName == s2.NacosClusterName {
+		return true
+	}
+	return false
 }
 
 func NewNacosService(ServiceName, Ip string, Port uint64, Weight float64, Enable, Healthy bool, opts ...NacosServiceOption) *registry.Service {
