@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/nacos-group/nacos-sdk-go/model"
+
 	"github.com/nacos-group/nacos-sdk-go/vo"
 
 	"github.com/nacos-group/nacos-sdk-go/clients"
@@ -135,6 +137,61 @@ func (n *NacosRegistry) Get(ctx context.Context, service *registry.Service) ([]*
 	return srvs, nil
 
 }
+func (n *NacosRegistry) Add(service *registry.Service) error {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+	if srvs, ok := n.Services[service.NacosServiceName]; ok {
+		for index, srv := range srvs {
+			if EqualService(srv, service) {
+				srvs[index] = service
+			}
+		}
+	}
+	return nil
+}
+
+//subscribe Service
+func (n *NacosRegistry) SubscribeService(ctx context.Context, service *registry.Service) error {
+	if n.Client == nil {
+		return NacosNotFoundErr
+	}
+	//param := NewSubscribeParam(service)
+	param := &vo.SubscribeParam{
+		ServiceName: service.NacosServiceName,
+		SubscribeCallback: func(services []model.SubscribeService, err error) {
+			srvs := []*registry.Service{}
+			for _, v := range services {
+				tempService := &registry.Service{
+					NacosIp:          v.Ip,
+					NacosPort:        v.Port,
+					NacosWeight:      v.Weight,
+					NacosEnable:      v.Enable,
+					NacosMetadata:    v.Metadata,
+					NacosClusterName: v.ClusterName,
+					NacosServiceName: v.ServiceName,
+				}
+				srvs = append(srvs, tempService)
+				fmt.Printf("watch service:%+v", v)
+			}
+			n.lock.Lock()
+			defer n.lock.Unlock()
+			n.Services[service.NacosServiceName] = srvs
+			//n.Services
+			//log.Printf("\n\n callback return services:%s \n\n", utils.ToJsonString(services))
+		},
+	}
+	if service.NacosGroupName != "" {
+		param.GroupName = service.NacosGroupName
+	}
+	if service.NacosClusterName != "" {
+		param.Clusters = []string{service.NacosClusterName}
+	}
+	err := n.Client.Subscribe(param)
+	if err != nil {
+		return fmt.Errorf("%w,source Err:%s", NacosSubscribeErr, err)
+	}
+	return nil
+}
 
 //equal service
 func EqualService(s1, s2 *registry.Service) bool {
@@ -164,7 +221,7 @@ func NewNacosService(ServiceName, Ip string, Port uint64, Weight float64, Enable
 }
 
 func NewRegisterInstanceParam(srv *registry.Service) (*vo.RegisterInstanceParam, error) {
-	c := &vo.RegisterInstanceParam{
+	param := &vo.RegisterInstanceParam{
 		Ip:          srv.NacosIp,
 		Port:        srv.NacosPort,
 		Weight:      srv.NacosWeight,
@@ -176,14 +233,14 @@ func NewRegisterInstanceParam(srv *registry.Service) (*vo.RegisterInstanceParam,
 		GroupName:   srv.NacosGroupName,
 		Ephemeral:   srv.NacosEphemeral,
 	}
-	if c.Weight <= 0 {
+	if param.Weight <= 0 {
 		return nil, NacosWeightErr
 	}
-	return c, nil
+	return param, nil
 }
 
 func NewDeregisterInstanceParam(srv *registry.Service) *vo.DeregisterInstanceParam {
-	c := &vo.DeregisterInstanceParam{
+	param := &vo.DeregisterInstanceParam{
 		Ip:          srv.NacosIp,
 		Port:        srv.NacosPort,
 		Cluster:     srv.NacosClusterName,
@@ -191,19 +248,42 @@ func NewDeregisterInstanceParam(srv *registry.Service) *vo.DeregisterInstancePar
 		GroupName:   srv.NacosGroupName,
 		Ephemeral:   srv.NacosEphemeral,
 	}
-	return c
+	return param
 }
 
 func NewSelectInstances(srv *registry.Service) *vo.SelectInstancesParam {
-	c := &vo.SelectInstancesParam{
+	param := &vo.SelectInstancesParam{
 		ServiceName: srv.NacosServiceName,
 		HealthyOnly: true,
 	}
 	if srv.NacosClusterName != "" {
-		c.Clusters = []string{srv.NacosClusterName}
+		param.Clusters = []string{srv.NacosClusterName}
 	}
 	if srv.NacosGroupName != "" {
-		c.GroupName = srv.NacosGroupName
+		param.GroupName = srv.NacosGroupName
 	}
-	return c
+	return param
 }
+
+//
+//func NewSubscribeParam(srv *registry.Service) *vo.SubscribeParam {
+//	param := &vo.SubscribeParam{
+//		ServiceName: srv.NacosServiceName,
+//		//GroupName:   "group-a",             // 默认值DEFAULT_GROUP
+//		//Clusters:    []string{"cluster-a"}, // 默认值DEFAULT
+//		SubscribeCallback: func(services []model.SubscribeService, err error) {
+//			for _, v := range services {
+//				fmt.Printf("watch service:%+v", v)
+//			}
+//			//log.Printf("\n\n callback return services:%s \n\n", utils.ToJsonString(services))
+//		},
+//	}
+//	if srv.NacosGroupName != "" {
+//		param.GroupName = srv.NacosGroupName
+//	}
+//	if srv.NacosClusterName != "" {
+//		param.Clusters = []string{srv.NacosClusterName}
+//	}
+//	return param
+//
+//}

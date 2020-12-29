@@ -8,5 +8,6 @@ var NacosRegistionErr = errors.New("Registion failed")
 var NacosParamErr = errors.New("Registion failed")
 var NacosDeregistionErr = errors.New("Deregistion failed")
 var NacosGetServiceErr = errors.New("Nacos get services failed")
+var NacosSubscribeErr = errors.New("Nacos subscription failed")
 
 //DeregisterInstance
