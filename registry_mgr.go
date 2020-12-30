@@ -47,6 +47,18 @@ func (p *pluninRegistry) InitPluninRegistry(ctx context.Context, name RegistryTy
 	return nil
 }
 
+//registry exist
+func (p *pluninRegistry) Exist(service *Service, name ...RegistryType) error {
+	var rType RegistryType = p.currentRegisterType
+	if len(name) > 0 {
+		rType = name[0]
+	}
+	if _, ok := p.plunins[rType]; ok {
+		return fmt.Errorf("%s plun-in has registered", name)
+	}
+	return nil
+}
+
 //register service
 func (p *pluninRegistry) Register(ctx context.Context, service *Service, name ...RegistryType) error {
 	p.Lock()
@@ -75,4 +87,32 @@ func (p *pluninRegistry) UnRegister(ctx context.Context, service *Service, name 
 		return fmt.Errorf("%s plun-in has registered", name)
 	}
 	return r.UnRegister(ctx, service)
+}
+
+//get services
+func (p *pluninRegistry) Get(ctx context.Context, service *Service, name ...RegistryType) ([]*Service, error) {
+	p.Lock()
+	defer p.Unlock()
+	var rType RegistryType = p.currentRegisterType
+	if len(name) > 0 {
+		rType = name[0]
+	}
+	r, ok := p.plunins[rType]
+	if ok {
+		return nil, fmt.Errorf("%s plun-in has registered", name)
+	}
+	return r.Get(ctx, service)
+}
+
+func (p *pluninRegistry) SubscribeService(ctx context.Context, service *Service, name ...RegistryType) error {
+	p.Lock()
+	defer p.Unlock()
+	var rType RegistryType = p.currentRegisterType
+	if len(name) > 0 {
+		rType = name[0]
+	}
+	r, ok := p.plunins[rType]
+	if ok {
+		return nil, fmt.Errorf("%s plun-in has registered", name)
+	}
 }

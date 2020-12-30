@@ -8,7 +8,8 @@ type Registryer interface {
 	Init(context.Context, func() error) error
 	Register(context.Context, *Service) error
 	UnRegister(context.Context, *Service) error
-	Get(context.Context, *Service) error
+	Get(context.Context, *Service) ([]*Service, error)
+	SubscribeService(context.Context, *Service) error
 }
 
 type Service struct {
