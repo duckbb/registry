@@ -51,7 +51,7 @@ func (p *pluninRegistry) InitPluninRegistry(ctx context.Context, name RegistryTy
 
 //registry exist
 func (p *pluninRegistry) getRegister(service *vo.Service, name ...RegistryType) (vo.Registryer, error) {
-	var rType RegistryType = p.currentRegisterType
+	rType := p.currentRegisterType
 	if len(name) > 0 {
 		rType = name[0]
 	}

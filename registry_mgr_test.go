@@ -2,7 +2,6 @@ package registry
 
 import (
 	"context"
-	"log"
 	"testing"
 
 	vo "github.com/duckbb/registry/base"
@@ -64,7 +63,7 @@ func getMgr() (*pluninRegistry, error) {
 		return nil, err
 	}
 	plugin := GetRegistryMgr()
-	//plugin.SetRegisterType(NACOS)
+	plugin.SetRegisterType(NACOS)
 	err = plugin.InitPluninRegistry(context.TODO(), NACOS, registry)
 	if err != nil {
 		return nil, err
@@ -78,7 +77,6 @@ func TestRegister(t *testing.T) {
 	if err != nil {
 		t.Errorf("get mgr fail,err:%s\n", err)
 	}
-	log.Println("err:", err)
 	service := &vo.Service{
 		NacosServiceName: "demo.go",
 		NacosIp:          "192.168.50.229",
@@ -92,6 +90,24 @@ func TestRegister(t *testing.T) {
 	err = mgr.Register(context.TODO(), service, NACOS)
 	if err != nil {
 		t.Errorf("register base fail,err:%s", err)
+	}
+
+}
+
+func TestGetService(t *testing.T) {
+	c, err := getMgr()
+	if err != nil {
+		t.Errorf("get mgr fail,err:%s\n", err)
+	}
+	service := &vo.Service{
+		NacosServiceName: "demo.go",
+	}
+	services, err := c.Get(context.TODO(), service)
+	if err != nil {
+		t.Errorf("get base failed,err:%s", err)
+	}
+	for _, v := range services {
+		t.Logf("%+v", v)
 	}
 
 }
