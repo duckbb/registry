@@ -6,7 +6,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/duckbb/registry"
+	vo2 "github.com/duckbb/registry/base"
+
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
@@ -19,7 +20,7 @@ const RegistryName = "nacos"
 type NacosRegistry struct {
 	sync.Mutex
 	Client   naming_client.INamingClient
-	Services map[string][]*registry.Service
+	Services map[string][]*vo2.Service
 }
 
 func (n *NacosRegistry) PluginName() string {
@@ -37,7 +38,7 @@ func NacosInit(ClientConfig constant.ClientConfig, ServerConfig []constant.Serve
 	}
 	r := &NacosRegistry{
 		Client:   client,
-		Services: map[string][]*registry.Service{},
+		Services: map[string][]*vo2.Service{},
 	}
 	return r, err
 }
@@ -46,8 +47,8 @@ func (n *NacosRegistry) Init(ctx context.Context, f func() error) error {
 	return f()
 }
 
-//register service
-func (n *NacosRegistry) Register(ctx context.Context, service *registry.Service) error {
+//register base
+func (n *NacosRegistry) Register(ctx context.Context, service *vo2.Service) error {
 	if n.Client == nil {
 		return NacosNotFoundErr
 	}
@@ -69,8 +70,8 @@ func (n *NacosRegistry) Register(ctx context.Context, service *registry.Service)
 	return nil
 }
 
-//unregister service
-func (n *NacosRegistry) UnRegister(ctx context.Context, service *registry.Service) error {
+//unregister base
+func (n *NacosRegistry) UnRegister(ctx context.Context, service *vo2.Service) error {
 	if n.Client == nil {
 		return NacosNotFoundErr
 	}
@@ -89,7 +90,7 @@ func (n *NacosRegistry) UnRegister(ctx context.Context, service *registry.Servic
 }
 
 //get services
-func (n *NacosRegistry) Get(ctx context.Context, service *registry.Service) ([]*registry.Service, error) {
+func (n *NacosRegistry) Get(ctx context.Context, service *vo2.Service) ([]*vo2.Service, error) {
 	if srvs, ok := n.Services[service.NacosServiceName]; ok {
 		return srvs, nil
 	}
@@ -98,15 +99,15 @@ func (n *NacosRegistry) Get(ctx context.Context, service *registry.Service) ([]*
 	}
 	n.Lock()
 	defer n.Unlock()
-	//service healthy=true,enable=true 和weight>0
+	//base healthy=true,enable=true 和weight>0
 	param := NewSelectInstances(service)
 	instances, err := n.Client.SelectInstances(*param)
 	if err != nil {
 		return nil, fmt.Errorf("%w,source Err:%s", NacosGetServiceErr, err)
 	}
-	srvs := []*registry.Service{}
+	srvs := []*vo2.Service{}
 	for _, v := range instances {
-		srv := &registry.Service{
+		srv := &vo2.Service{
 			NacosIp:          v.Ip,
 			NacosPort:        v.Port,
 			NacosWeight:      v.Weight,
@@ -128,18 +129,18 @@ func (n *NacosRegistry) Get(ctx context.Context, service *registry.Service) ([]*
 }
 
 //subscribe Service
-func (n *NacosRegistry) SubscribeService(ctx context.Context, service *registry.Service) error {
+func (n *NacosRegistry) SubscribeService(ctx context.Context, service *vo2.Service) error {
 	if n.Client == nil {
 		return NacosNotFoundErr
 	}
-	//param := NewSubscribeParam(service)
+	//param := NewSubscribeParam(base)
 	param := &vo.SubscribeParam{
 		ServiceName: service.NacosServiceName,
 		SubscribeCallback: func(services []model.SubscribeService, err error) {
-			log.Println("watch service change:")
-			srvs := []*registry.Service{}
+			log.Println("watch base change:")
+			srvs := []*vo2.Service{}
 			for _, v := range services {
-				tempService := &registry.Service{
+				tempService := &vo2.Service{
 					NacosIp:          v.Ip,
 					NacosPort:        v.Port,
 					NacosWeight:      v.Weight,
@@ -149,7 +150,7 @@ func (n *NacosRegistry) SubscribeService(ctx context.Context, service *registry.
 					NacosServiceName: v.ServiceName,
 				}
 				srvs = append(srvs, tempService)
-				log.Printf("watch service:%+v\n", v)
+				log.Printf("watch base:%+v\n", v)
 			}
 			n.Lock()
 			defer n.Unlock()
@@ -169,15 +170,15 @@ func (n *NacosRegistry) SubscribeService(ctx context.Context, service *registry.
 	return nil
 }
 
-//unsubscribe service
-func (n *NacosRegistry) UnsubscribeService(ctx context.Context, service *registry.Service) error {
+//unsubscribe base
+func (n *NacosRegistry) UnsubscribeService(ctx context.Context, service *vo2.Service) error {
 	if n.Client == nil {
 		return NacosNotFoundErr
 	}
 	param := &vo.SubscribeParam{
 		ServiceName: service.NacosServiceName,
 		SubscribeCallback: func(services []model.SubscribeService, err error) {
-			log.Printf("unwatch service:%+v\n", services)
+			log.Printf("unwatch base:%+v\n", services)
 		},
 	}
 	if service.NacosGroupName != "" {
@@ -193,8 +194,8 @@ func (n *NacosRegistry) UnsubscribeService(ctx context.Context, service *registr
 	return nil
 }
 
-//equal service
-func EqualService(s1, s2 *registry.Service) bool {
+//equal base
+func EqualService(s1, s2 *vo2.Service) bool {
 	if s1.NacosServiceName == s2.NacosServiceName &&
 		s1.NacosIp == s2.NacosIp &&
 		s1.NacosPort == s2.NacosPort &&
@@ -205,8 +206,8 @@ func EqualService(s1, s2 *registry.Service) bool {
 	return false
 }
 
-func NewNacosService(ServiceName, Ip string, Port uint64, Weight float64, Enable, Healthy bool, opts ...NacosServiceOption) *registry.Service {
-	srv := &registry.Service{
+func NewNacosService(ServiceName, Ip string, Port uint64, Weight float64, Enable, Healthy bool, opts ...NacosServiceOption) *vo2.Service {
+	srv := &vo2.Service{
 		NacosIp:          Ip,
 		NacosPort:        Port,
 		NacosWeight:      Weight,
@@ -220,7 +221,7 @@ func NewNacosService(ServiceName, Ip string, Port uint64, Weight float64, Enable
 	return srv
 }
 
-func NewRegisterInstanceParam(srv *registry.Service) (*vo.RegisterInstanceParam, error) {
+func NewRegisterInstanceParam(srv *vo2.Service) (*vo.RegisterInstanceParam, error) {
 	param := &vo.RegisterInstanceParam{
 		Ip:          srv.NacosIp,
 		Port:        srv.NacosPort,
@@ -239,7 +240,7 @@ func NewRegisterInstanceParam(srv *registry.Service) (*vo.RegisterInstanceParam,
 	return param, nil
 }
 
-func NewDeregisterInstanceParam(srv *registry.Service) *vo.DeregisterInstanceParam {
+func NewDeregisterInstanceParam(srv *vo2.Service) *vo.DeregisterInstanceParam {
 	param := &vo.DeregisterInstanceParam{
 		Ip:          srv.NacosIp,
 		Port:        srv.NacosPort,
@@ -251,7 +252,7 @@ func NewDeregisterInstanceParam(srv *registry.Service) *vo.DeregisterInstancePar
 	return param
 }
 
-func NewSelectInstances(srv *registry.Service) *vo.SelectInstancesParam {
+func NewSelectInstances(srv *vo2.Service) *vo.SelectInstancesParam {
 	param := &vo.SelectInstancesParam{
 		ServiceName: srv.NacosServiceName,
 		HealthyOnly: true,

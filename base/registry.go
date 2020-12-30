@@ -1,10 +1,10 @@
-package registry
+package vo
 
 import "context"
 
 //plunin interface
 type Registryer interface {
-	Name() string
+	PluginName() string
 	Init(context.Context, func() error) error
 	Register(context.Context, *Service) error
 	UnRegister(context.Context, *Service) error
@@ -27,7 +27,7 @@ type Service struct {
 	NacosEphemeral   bool
 }
 
-////service
+////base
 //type Service struct {
 //	Name  string  `json:"name"`
 //	nodes []*Node `json:"nodes"`

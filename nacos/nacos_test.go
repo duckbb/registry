@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/duckbb/registry"
+	vo "github.com/duckbb/registry/base"
 
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 )
@@ -62,7 +62,7 @@ func TestNacosRegister(t *testing.T) {
 	if err != nil {
 		t.Errorf("get client fail,err:%s", err)
 	}
-	service := &registry.Service{
+	service := &vo.Service{
 		NacosServiceName: "demo.go",
 		NacosIp:          "192.168.50.229",
 		NacosPort:        8081,
@@ -74,18 +74,18 @@ func TestNacosRegister(t *testing.T) {
 	}
 	err = c.Register(context.TODO(), service)
 	if err != nil {
-		t.Errorf("register service fail,err:%s", err)
+		t.Errorf("register base fail,err:%s", err)
 	}
 	time.Sleep(time.Second * 10)
 }
 
-//register same service
+//register same base
 func TestEqualService(t *testing.T) {
 	c, err := getNacosRegistry()
 	if err != nil {
 		t.Errorf("get client fail,err:%s", err)
 	}
-	service := &registry.Service{
+	service := &vo.Service{
 		NacosServiceName: "demo.go",
 		NacosIp:          "192.168.50.229",
 		NacosPort:        8090,
@@ -97,10 +97,10 @@ func TestEqualService(t *testing.T) {
 	}
 	err = c.Register(context.TODO(), service)
 	if err != nil {
-		t.Errorf("register service fail,err:%s", err)
+		t.Errorf("register base fail,err:%s", err)
 	}
 
-	service1 := &registry.Service{
+	service1 := &vo.Service{
 		NacosServiceName: "demo.go",
 		NacosIp:          "192.168.50.229",
 		NacosPort:        8090,
@@ -113,7 +113,7 @@ func TestEqualService(t *testing.T) {
 	//overlay
 	err = c.Register(context.TODO(), service1)
 	if err != nil {
-		t.Errorf("equal register service fail,err:%s", err)
+		t.Errorf("equal register base fail,err:%s", err)
 	}
 	time.Sleep(time.Second * 10)
 }
@@ -123,12 +123,12 @@ func TestGetService(t *testing.T) {
 	if err != nil {
 		t.Errorf("get client fail,err:%s", err)
 	}
-	service := &registry.Service{
+	service := &vo.Service{
 		NacosServiceName: "demo.go",
 	}
 	services, err := c.Get(context.TODO(), service)
 	if err != nil {
-		t.Errorf("get service failed,err:%s", err)
+		t.Errorf("get base failed,err:%s", err)
 	}
 	for _, v := range services {
 		t.Logf("%+v", v)
@@ -151,7 +151,7 @@ func TestSubscribe(t *testing.T) {
 		serviceNum := 2
 		rand.Seed(time.Now().UnixNano())
 		for i := 0; i < serviceNum; i++ {
-			ser := &registry.Service{
+			ser := &vo.Service{
 				NacosServiceName: "demo.go",
 				NacosIp:          "192.168.50.229",
 				NacosPort:        uint64(rand.Intn(10000)),
@@ -163,29 +163,29 @@ func TestSubscribe(t *testing.T) {
 			ser.NacosMetadata = map[string]string{"idc": "shanghai" + strconv.FormatUint(ser.NacosPort, 10)}
 			err := c2.Register(context.TODO(), ser)
 			if err != nil {
-				t.Log("register service fail,err", err.Error())
+				t.Log("register base fail,err", err.Error())
 			}
 			t.Logf("register one sevice:servicePort:%d", ser.NacosPort)
 			time.Sleep(time.Second * 3)
 		}
 	}()
 	//watch
-	service := &registry.Service{
+	service := &vo.Service{
 		NacosServiceName: "demo.go",
 	}
 	err = c.SubscribeService(context.TODO(), service)
 	if err != nil {
-		t.Errorf("subscribe service failed,err:%s", err)
+		t.Errorf("subscribe base failed,err:%s", err)
 	}
 	go func() {
 		for {
-			t.Log("----print service data start----")
+			t.Log("----print base data start----")
 			if services, ok := c.Services[service.NacosServiceName]; ok {
 				for _, v := range services {
-					t.Logf("service data:%+v", v)
+					t.Logf("base data:%+v", v)
 				}
 			}
-			t.Log("----print service data stop----")
+			t.Log("----print base data stop----")
 
 			time.Sleep(time.Second * 5)
 		}
@@ -210,7 +210,7 @@ func TestUnRegister(t *testing.T) {
 		serviceNum := 2
 		rand.Seed(time.Now().UnixNano())
 		for i := 0; i < serviceNum; i++ {
-			ser := &registry.Service{
+			ser := &vo.Service{
 				NacosServiceName: "demo.go",
 				NacosIp:          "192.168.50.229",
 				NacosPort:        uint64(rand.Intn(10000)),
@@ -222,11 +222,11 @@ func TestUnRegister(t *testing.T) {
 			ser.NacosMetadata = map[string]string{"idc": "shanghai" + strconv.FormatUint(ser.NacosPort, 10)}
 			err := c2.Register(context.TODO(), ser)
 			if err != nil {
-				t.Log("register service fail,err", err.Error())
+				t.Log("register base fail,err", err.Error())
 			}
 
 			//unregister
-			go func(service *registry.Service) {
+			go func(service *vo.Service) {
 				time.Sleep(time.Second * 25)
 				t.Log("unregister")
 				c2.UnRegister(context.TODO(), service)
@@ -237,22 +237,22 @@ func TestUnRegister(t *testing.T) {
 		}
 	}()
 	//watch
-	service := &registry.Service{
+	service := &vo.Service{
 		NacosServiceName: "demo.go",
 	}
 	err = c.SubscribeService(context.TODO(), service)
 	if err != nil {
-		t.Errorf("subscribe service failed,err:%s", err)
+		t.Errorf("subscribe base failed,err:%s", err)
 	}
 	go func() {
 		for {
-			t.Log("----print service data start----")
+			t.Log("----print base data start----")
 			if services, ok := c.Services[service.NacosServiceName]; ok {
 				for _, v := range services {
-					t.Logf("service data:%+v", v)
+					t.Logf("base data:%+v", v)
 				}
 			}
-			t.Log("----print service data stop----")
+			t.Log("----print base data stop----")
 
 			time.Sleep(time.Second * 5)
 		}
@@ -262,32 +262,32 @@ func TestUnRegister(t *testing.T) {
 	time.Sleep(time.Second * 50)
 }
 
-//test other service off
+//test other base off
 func TestTurnOffService(t *testing.T) {
 	c, err := getNacosRegistry()
 	if err != nil {
 		t.Errorf("get client fail,err:%s", err)
 	}
 
-	//turn off outside service
+	//turn off outside base
 
 	//watch
-	service := &registry.Service{
+	service := &vo.Service{
 		NacosServiceName: "demo.go",
 	}
 	err = c.SubscribeService(context.TODO(), service)
 	if err != nil {
-		t.Errorf("subscribe service failed,err:%s", err)
+		t.Errorf("subscribe base failed,err:%s", err)
 	}
 	go func() {
 		for {
-			t.Log("----print service data start----")
+			t.Log("----print base data start----")
 			if services, ok := c.Services[service.NacosServiceName]; ok {
 				for _, v := range services {
-					t.Logf("service data:%+v", v)
+					t.Logf("base data:%+v", v)
 				}
 			}
-			t.Log("----print service data stop----")
+			t.Log("----print base data stop----")
 
 			time.Sleep(time.Second * 5)
 		}
@@ -297,7 +297,7 @@ func TestTurnOffService(t *testing.T) {
 	time.Sleep(time.Second * 50)
 }
 
-//test unsubscribe service
+//test unsubscribe base
 
 func TestUnsubscribe(t *testing.T) {
 	c, err := getNacosRegistry()
@@ -305,15 +305,15 @@ func TestUnsubscribe(t *testing.T) {
 		t.Errorf("get client fail,err:%s", err)
 	}
 
-	//turn off outside service
+	//turn off outside base
 
 	//watch
-	service := &registry.Service{
+	service := &vo.Service{
 		NacosServiceName: "demo.go",
 	}
 	err = c.SubscribeService(context.TODO(), service)
 	if err != nil {
-		t.Errorf("subscribe service failed,err:%s", err)
+		t.Errorf("subscribe base failed,err:%s", err)
 	}
 	go func() {
 		time.Sleep(time.Second * 3)
@@ -321,7 +321,7 @@ func TestUnsubscribe(t *testing.T) {
 		//unsubscribe
 		err = c2.UnsubscribeService(context.TODO(), service)
 		if err != nil {
-			t.Errorf("unsubscribe service failed,err:%s", err)
+			t.Errorf("unsubscribe base failed,err:%s", err)
 		}
 
 	}()

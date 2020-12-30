@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"sync"
+
+	vo "github.com/duckbb/registry/base"
 )
 
 type RegistryType string
@@ -15,7 +17,7 @@ const (
 
 type pluninRegistry struct {
 	sync.Mutex
-	plunins             map[RegistryType]Registryer
+	plunins             map[RegistryType]vo.Registryer
 	currentRegisterType RegistryType
 }
 
@@ -24,7 +26,7 @@ var once sync.Once
 
 func GetRegistryMgr() *pluninRegistry {
 	once.Do(func() {
-		PR = &pluninRegistry{plunins: make(map[RegistryType]Registryer)}
+		PR = &pluninRegistry{plunins: make(map[RegistryType]vo.Registryer)}
 	})
 	return PR
 }
@@ -37,7 +39,7 @@ func (p *pluninRegistry) SetRegisterType(name RegistryType) {
 }
 
 //plunin init
-func (p *pluninRegistry) InitPluninRegistry(ctx context.Context, name RegistryType, r Registryer) error {
+func (p *pluninRegistry) InitPluninRegistry(ctx context.Context, name RegistryType, r vo.Registryer) error {
 	p.Lock()
 	defer p.Unlock()
 	if _, ok := p.plunins[name]; ok {
@@ -48,20 +50,20 @@ func (p *pluninRegistry) InitPluninRegistry(ctx context.Context, name RegistryTy
 }
 
 //registry exist
-func (p *pluninRegistry) getRegister(service *Service, name ...RegistryType) (Registryer, error) {
+func (p *pluninRegistry) getRegister(service *vo.Service, name ...RegistryType) (vo.Registryer, error) {
 	var rType RegistryType = p.currentRegisterType
 	if len(name) > 0 {
 		rType = name[0]
 	}
 	r, ok := p.plunins[rType]
-	if ok {
-		return nil, fmt.Errorf("%s plun-in has registered", name)
+	if !ok {
+		return nil, fmt.Errorf("%s Plug-in not registered", name)
 	}
 	return r, nil
 }
 
-//register service
-func (p *pluninRegistry) Register(ctx context.Context, service *Service, name ...RegistryType) error {
+//register base
+func (p *pluninRegistry) Register(ctx context.Context, service *vo.Service, name ...RegistryType) error {
 	p.Lock()
 	defer p.Unlock()
 	r, err := p.getRegister(service, name...)
@@ -71,8 +73,8 @@ func (p *pluninRegistry) Register(ctx context.Context, service *Service, name ..
 	return r.Register(ctx, service)
 }
 
-//unregister service
-func (p *pluninRegistry) UnRegister(ctx context.Context, service *Service, name ...RegistryType) error {
+//unregister base
+func (p *pluninRegistry) UnRegister(ctx context.Context, service *vo.Service, name ...RegistryType) error {
 	p.Lock()
 	defer p.Unlock()
 	r, err := p.getRegister(service, name...)
@@ -83,7 +85,7 @@ func (p *pluninRegistry) UnRegister(ctx context.Context, service *Service, name 
 }
 
 //get services
-func (p *pluninRegistry) Get(ctx context.Context, service *Service, name ...RegistryType) ([]*Service, error) {
+func (p *pluninRegistry) Get(ctx context.Context, service *vo.Service, name ...RegistryType) ([]*vo.Service, error) {
 	p.Lock()
 	defer p.Unlock()
 	r, err := p.getRegister(service, name...)
@@ -93,7 +95,7 @@ func (p *pluninRegistry) Get(ctx context.Context, service *Service, name ...Regi
 	return r.Get(ctx, service)
 }
 
-func (p *pluninRegistry) SubscribeService(ctx context.Context, service *Service, name ...RegistryType) error {
+func (p *pluninRegistry) SubscribeService(ctx context.Context, service *vo.Service, name ...RegistryType) error {
 	p.Lock()
 	defer p.Unlock()
 	r, err := p.getRegister(service, name...)
