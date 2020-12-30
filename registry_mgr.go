@@ -50,7 +50,7 @@ func (p *pluninRegistry) InitPluninRegistry(ctx context.Context, name RegistryTy
 }
 
 //registry exist
-func (p *pluninRegistry) getRegister(service *vo.Service, name ...RegistryType) (vo.Registryer, error) {
+func (p *pluninRegistry) GetRegister(name ...RegistryType) (vo.Registryer, error) {
 	rType := p.currentRegisterType
 	if len(name) > 0 {
 		rType = name[0]
@@ -66,7 +66,7 @@ func (p *pluninRegistry) getRegister(service *vo.Service, name ...RegistryType) 
 func (p *pluninRegistry) Register(ctx context.Context, service *vo.Service, name ...RegistryType) error {
 	p.Lock()
 	defer p.Unlock()
-	r, err := p.getRegister(service, name...)
+	r, err := p.GetRegister(name...)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (p *pluninRegistry) Register(ctx context.Context, service *vo.Service, name
 func (p *pluninRegistry) UnRegister(ctx context.Context, service *vo.Service, name ...RegistryType) error {
 	p.Lock()
 	defer p.Unlock()
-	r, err := p.getRegister(service, name...)
+	r, err := p.GetRegister(name...)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (p *pluninRegistry) UnRegister(ctx context.Context, service *vo.Service, na
 func (p *pluninRegistry) Get(ctx context.Context, service *vo.Service, name ...RegistryType) ([]*vo.Service, error) {
 	p.Lock()
 	defer p.Unlock()
-	r, err := p.getRegister(service, name...)
+	r, err := p.GetRegister(name...)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (p *pluninRegistry) Get(ctx context.Context, service *vo.Service, name ...R
 func (p *pluninRegistry) SubscribeService(ctx context.Context, service *vo.Service, name ...RegistryType) error {
 	p.Lock()
 	defer p.Unlock()
-	r, err := p.getRegister(service, name...)
+	r, err := p.GetRegister(name...)
 	if err != nil {
 		return err
 	}
