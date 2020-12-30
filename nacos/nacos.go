@@ -169,6 +169,30 @@ func (n *NacosRegistry) SubscribeService(ctx context.Context, service *registry.
 	return nil
 }
 
+//unsubscribe service
+func (n *NacosRegistry) UnsubscribeService(ctx context.Context, service *registry.Service) error {
+	if n.Client == nil {
+		return NacosNotFoundErr
+	}
+	param := &vo.SubscribeParam{
+		ServiceName: service.NacosServiceName,
+		SubscribeCallback: func(services []model.SubscribeService, err error) {
+			log.Printf("unwatch service:%+v\n", services)
+		},
+	}
+	if service.NacosGroupName != "" {
+		param.GroupName = service.NacosGroupName
+	}
+	if service.NacosClusterName != "" {
+		param.Clusters = []string{service.NacosClusterName}
+	}
+	err := n.Client.Unsubscribe(param)
+	if err != nil {
+		return fmt.Errorf("%w,source Err:%s", NacosUnsubscribeErr, err)
+	}
+	return nil
+}
+
 //equal service
 func EqualService(s1, s2 *registry.Service) bool {
 	if s1.NacosServiceName == s2.NacosServiceName &&

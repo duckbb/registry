@@ -296,3 +296,34 @@ func TestTurnOffService(t *testing.T) {
 	//select {}
 	time.Sleep(time.Second * 50)
 }
+
+//test unsubscribe service
+
+func TestUnsubscribe(t *testing.T) {
+	c, err := getNacosRegistry()
+	if err != nil {
+		t.Errorf("get client fail,err:%s", err)
+	}
+
+	//turn off outside service
+
+	//watch
+	service := &registry.Service{
+		NacosServiceName: "demo.go",
+	}
+	err = c.SubscribeService(context.TODO(), service)
+	if err != nil {
+		t.Errorf("subscribe service failed,err:%s", err)
+	}
+	go func() {
+		time.Sleep(time.Second * 3)
+		c2, err := getNacosRegistry()
+		//unsubscribe
+		err = c2.UnsubscribeService(context.TODO(), service)
+		if err != nil {
+			t.Errorf("unsubscribe service failed,err:%s", err)
+		}
+
+	}()
+	select {}
+}
