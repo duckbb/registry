@@ -9,13 +9,13 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/duckbb/registry/examples/http"
 	consulapi "github.com/hashicorp/consul/api"
 )
 
 const (
 	consulAddress = "http://192.168.50.78:8500"
 	localIp       = "192.168.50.229"
-	localPort     = 81
 )
 
 func consulRegister(port int) error {
@@ -29,18 +29,20 @@ func consulRegister(port int) error {
 
 	// 创建注册到consul的服务到
 	registration := new(consulapi.AgentServiceRegistration)
-	registration.ID = "337"
-	registration.Name = "service337"
-	registration.Port = localPort
+	registration.ID = "337_" + strconv.Itoa(port)
+	//registration.ID = "337_" + strconv.Itoa(port)
+	registration.Name = "service337_"
+	//registration.Name = "service337_" + strconv.Itoa(port)
+	registration.Port = port
 	registration.Tags = []string{"testService"}
 	registration.Address = localIp
 
 	// 增加consul健康检查回调函数
 	check := new(consulapi.AgentServiceCheck)
 	check.HTTP = fmt.Sprintf("http://%s:%d", registration.Address, registration.Port)
-	check.Timeout = "5s"
+	check.Timeout = "3s"
 	check.Interval = "5s"
-	check.DeregisterCriticalServiceAfter = "30s" // 故障检查失败30s后 consul自动将注册服务删除
+	check.DeregisterCriticalServiceAfter = "5s" // 故障检查失败30s后 consul自动将注册服务删除
 	registration.Check = check
 
 	// 注册服务到consul
@@ -54,16 +56,21 @@ func consulRegister(port int) error {
 func main() {
 	chanErr := make(chan error)
 	ports := []int{8085, 8086}
-	for _, port := range ports {
+	for _, p := range ports {
+		port := p
 		go func() {
-			srv1 := NewServer(localIp + ":" + strconv.Itoa(port))
+			srv1 := http.NewServer(localIp + ":" + strconv.Itoa(port))
 			err := consulRegister(port)
+
 			if err != nil {
+				log.Println("consul err:", err)
 				chanErr <- err
 				return
 			}
+			log.Println("listen port:", localIp+":"+strconv.Itoa(port))
 			err = srv1.Start(context.Background())
 			if err != nil {
+				log.Println("service listen err:", err)
 				chanErr <- err
 				return
 			}
