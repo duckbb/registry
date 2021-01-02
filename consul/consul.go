@@ -54,11 +54,6 @@ func (c *ConsulRegistry) Register(ctx context.Context, service *vo2.Service) err
 	return nil
 }
 
-//create AgentServiceCheck
-func NewAgentServiceCheck() *api.AgentServiceCheck {
-
-}
-
 //create agentService
 func NewAgentServiceRegistration(service *vo2.Service) *api.AgentServiceRegistration {
 	agent := &api.AgentServiceRegistration{
