@@ -1,6 +1,10 @@
 package vo
 
-import "context"
+import (
+	"context"
+
+	"github.com/hashicorp/consul/api"
+)
 
 //plunin interface
 type Registryer interface {
@@ -13,6 +17,25 @@ type Registryer interface {
 }
 
 type Service struct {
+
+	//common
+
+	//consul init
+	ConsulKind              api.ServiceKind
+	ConsulID                string
+	ConsulName              string
+	ConsulTags              []string
+	ConsulPort              int
+	ConsulAddress           string
+	ConsulTaggedAddresses   map[string]api.ServiceAddress
+	ConsulEnableTagOverride bool
+	ConsulMeta              map[string]string
+	ConsulWeights           *api.AgentWeights
+	ConsulCheck             *api.AgentServiceCheck
+	ConsulChecks            api.AgentServiceChecks
+	ConsulProxy             *api.AgentServiceConnectProxyConfig
+	ConsulConnect           *api.AgentServiceConnect
+	ConsulNamespace         string
 
 	//nacos init
 	NacosIp          string
