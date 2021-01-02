@@ -29,11 +29,12 @@ func consulRegister(port int) error {
 
 	// 创建注册到consul的服务到
 	registration := new(consulapi.AgentServiceRegistration)
-	registration.ID = "337_" + strconv.Itoa(port)
 	registration.Name = "service337_"
 	registration.Port = port
 	registration.Tags = []string{"testService"}
 	registration.Address = localIp
+
+	registration.ID = registration.Name + "_" + strconv.Itoa(port) + "_" + registration.Address
 
 	// 增加consul健康检查回调函数
 	check := new(consulapi.AgentServiceCheck)
