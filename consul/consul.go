@@ -60,6 +60,19 @@ func (c *ConsulRegistry) UnRegister(ctx context.Context, service *vo2.Service) e
 	return nil
 }
 
+//get services
+func (c *ConsulRegistry) Get(ctx context.Context, service *vo2.Service) ([]*vo2.Service, error) {
+
+	return srvs, nil
+
+}
+
+//subscribe Service
+func (c *ConsulRegistry) SubscribeService(ctx context.Context, service *vo2.Service) error {
+
+	return nil
+}
+
 //create agentService
 func NewAgentServiceRegistration(service *vo2.Service) *api.AgentServiceRegistration {
 	agent := &api.AgentServiceRegistration{
